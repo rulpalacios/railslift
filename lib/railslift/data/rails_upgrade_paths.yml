@@ -4,18 +4,49 @@ latest:
 versions:
   "6.1":
     next: "7.0"
+    ruby_min: "2.7.0"
+    checks:
+      - "Review autoloading and Zeitwerk compatibility"
+      - "Review framework defaults for Rails 7.0"
+      - "Run rails app:update"
+      - "Run the complete test suite"
 
   "7.0":
     next: "7.1"
+    ruby_min: "2.7.0"
+    checks:
+      - "Review deprecated configuration"
+      - "Review framework defaults for Rails 7.1"
+      - "Run rails app:update"
+      - "Run the complete test suite"
 
   "7.1":
     next: "7.2"
+    ruby_min: "3.1.0"
+    checks:
+      - "Review deprecated APIs and configuration"
+      - "Review framework defaults for Rails 7.2"
+      - "Run rails app:update"
+      - "Run the complete test suite"
 
   "7.2":
     next: "8.0"
+    ruby_min: "3.2.0"
+    checks:
+      - "Upgrade Ruby before upgrading Rails if required"
+      - "Review Rails 8.0 framework defaults"
+      - "Run rails app:update"
+      - "Run the complete test suite"
 
   "8.0":
     next: "8.1"
+    ruby_min: "3.2.0"
+    checks:
+      - "Review deprecated APIs and configuration"
+      - "Review framework defaults for Rails 8.1"
+      - "Run rails app:update"
+      - "Run the complete test suite"
 
   "8.1":
     next:
+    checks: []

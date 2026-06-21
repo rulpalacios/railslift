@@ -1,16 +1,14 @@
 # frozen_string_literal: true
 
-require "yaml"
 require "rubygems"
+require_relative "upgrade_repository"
 
 module Railslift
   class UpgradePlanner
-    DATA_PATH = File.expand_path("data/rails_upgrade_paths.yml", __dir__)
-
-    def initialize(current_version:, target_version:)
+    def initialize(current_version:, target_version:, repository: UpgradeRepository.new)
       @current_version = Gem::Version.new(current_version)
       @target_version = Gem::Version.new(target_version)
-      @paths = YAML.load_file(DATA_PATH)
+      @repository = repository
     end
 
     def call
@@ -28,8 +26,7 @@ module Railslift
       current_minor = minor(@current_version)
 
       while Gem::Version.new(current_minor) < @target_version
-        version_config = @paths.fetch("versions").fetch(current_minor)
-        next_version = version_config.fetch("next")
+        next_version = @repository.next_version(current_minor)
 
         break if next_version.nil?
 
