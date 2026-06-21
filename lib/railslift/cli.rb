@@ -18,5 +18,26 @@ module Railslift
       puts "Gemfile: #{result[:has_gemfile] ? "Found" : "Missing"}"
       puts "Gemfile.lock: #{result[:has_lockfile] ? "Found" : "Missing"}"
     end
+
+    desc "plan", "Generate Rails upgrade plan"
+    option :target, required: true
+
+    def plan
+      detector = ProjectDetector.new(Dir.pwd).call
+      planner = UpgradePlanner.new(
+        current_version: detector[:rails_version],
+        target_version: options[:target]
+      )
+
+      result = planner.call
+
+      puts "Railslift Plan"
+      puts
+      puts "Current Rails: #{result[:current_version]}"
+      puts "Target Rails: #{result[:target_version]}"
+      puts
+      puts "Suggested path:"
+      result[:steps].each { |step| puts "- #{step[:from]} → #{step[:to]}" }
+    end
   end
 end
