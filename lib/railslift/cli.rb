@@ -4,10 +4,15 @@ require "thor"
 require_relative "outdated_checker"
 require_relative "project_detector"
 require_relative "upgrade_checker"
+require_relative "upgrade_guide"
 require_relative "upgrade_planner"
 
 module Railslift
   class CLI < Thor
+    def self.exit_on_failure?
+      true
+    end
+
     desc "doctor", "Detect Rails project information"
 
     def doctor
@@ -106,6 +111,29 @@ module Railslift
         puts "Checks:"
         step[:checks].each { |check| puts "- #{check}" }
       end
+    end
+
+    desc "upgrade-guide FROM TO", "Show guidance for a Rails upgrade transition"
+
+    def upgrade_guide(from, to)
+      result = UpgradeGuide.new(from_version: from, to_version: to).call
+
+      puts "Railslift Upgrade Guide"
+      puts
+      puts "Rails #{result[:from]} → #{result[:to]}"
+      puts "Required Ruby: >= #{result[:ruby_min]}"
+      puts
+      puts "Commands:"
+      result[:commands].each { |command| puts "- #{command}" }
+      puts
+      puts "Review:"
+      result[:review].each { |item| puts "- #{item}" }
+      puts
+      puts "Documentation:"
+      puts "- Upgrade guide: #{result[:documentation].fetch("upgrade_guide")}"
+      puts "- Release notes: #{result[:documentation].fetch("release_notes")}"
+    rescue UpgradeGuide::UnsupportedTransition => error
+      raise Thor::Error, error.message
     end
   end
 end

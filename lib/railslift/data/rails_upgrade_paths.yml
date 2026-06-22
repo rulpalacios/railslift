@@ -5,48 +5,85 @@ versions:
   "6.1":
     next: "7.0"
     ruby_min: "2.7.0"
+    commands:
+      - "bundle update rails"
+      - "bin/rails app:update"
+      - "bin/rails test"
     checks:
       - "Review autoloading and Zeitwerk compatibility"
       - "Review framework defaults for Rails 7.0"
       - "Run rails app:update"
       - "Run the complete test suite"
+    documentation:
+      upgrade_guide: "https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-6-1-to-rails-7-0"
+      release_notes: "https://guides.rubyonrails.org/7_0_release_notes.html"
 
   "7.0":
     next: "7.1"
     ruby_min: "2.7.0"
+    commands:
+      - "bundle update rails"
+      - "bin/rails app:update"
+      - "bin/rails test"
     checks:
       - "Review deprecated configuration"
       - "Review framework defaults for Rails 7.1"
       - "Run rails app:update"
       - "Run the complete test suite"
+    documentation:
+      upgrade_guide: "https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-7-0-to-rails-7-1"
+      release_notes: "https://guides.rubyonrails.org/7_1_release_notes.html"
 
   "7.1":
     next: "7.2"
     ruby_min: "3.1.0"
+    commands:
+      - "bundle update rails"
+      - "bin/rails app:update"
+      - "bin/rails test"
     checks:
       - "Review deprecated APIs and configuration"
       - "Review framework defaults for Rails 7.2"
       - "Run rails app:update"
       - "Run the complete test suite"
+    documentation:
+      upgrade_guide: "https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-7-1-to-rails-7-2"
+      release_notes: "https://guides.rubyonrails.org/7_2_release_notes.html"
 
   "7.2":
     next: "8.0"
     ruby_min: "3.2.0"
+    commands:
+      - "bundle update rails"
+      - "bin/rails app:update"
+      - "bin/rails test"
     checks:
       - "Upgrade Ruby before upgrading Rails if required"
       - "Review Rails 8.0 framework defaults"
       - "Run rails app:update"
       - "Run the complete test suite"
+    documentation:
+      upgrade_guide: "https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-7-2-to-rails-8-0"
+      release_notes: "https://guides.rubyonrails.org/8_0_release_notes.html"
 
   "8.0":
     next: "8.1"
     ruby_min: "3.2.0"
+    commands:
+      - "bundle update rails"
+      - "bin/rails app:update"
+      - "bin/rails test"
     checks:
       - "Review deprecated APIs and configuration"
       - "Review framework defaults for Rails 8.1"
       - "Run rails app:update"
       - "Run the complete test suite"
+    documentation:
+      upgrade_guide: "https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#upgrading-from-rails-8-0-to-rails-8-1"
+      release_notes: "https://guides.rubyonrails.org/8_1_release_notes.html"
 
   "8.1":
     next:
+    commands: []
     checks: []
+    documentation: {}

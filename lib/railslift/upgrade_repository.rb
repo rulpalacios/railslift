@@ -26,6 +26,14 @@ module Railslift
       version_data(version).fetch("checks", [])
     end
 
+    def commands(version)
+      version_data(version).fetch("commands", [])
+    end
+
+    def documentation(version)
+      version_data(version).fetch("documentation", {})
+    end
+
     private
 
     def version_data(version)

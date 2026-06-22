@@ -100,4 +100,39 @@ class TestRailslift < Minitest::Test
     assert_includes output, "✓ Ruby 3.2.2 (required: >= 2.7.0)"
     assert_includes output, "Run rails app:update"
   end
+
+  def test_upgrade_guide_returns_transition_guidance
+    result = Railslift::UpgradeGuide.new(
+      from_version: "7.0.4.2",
+      to_version: "7.1.5"
+    ).call
+
+    assert_equal "7.0", result[:from]
+    assert_equal "7.1", result[:to]
+    assert_equal "2.7.0", result[:ruby_min]
+    assert_includes result[:commands], "bundle update rails"
+    assert_includes result[:review], "Review deprecated configuration"
+    assert_equal "https://guides.rubyonrails.org/7_1_release_notes.html",
+                 result[:documentation]["release_notes"]
+  end
+
+  def test_upgrade_guide_rejects_non_consecutive_transition
+    error = assert_raises(Railslift::UpgradeGuide::UnsupportedTransition) do
+      Railslift::UpgradeGuide.new(from_version: "7.0", to_version: "7.2").call
+    end
+
+    assert_includes error.message, "7.0 → 7.2"
+  end
+
+  def test_upgrade_guide_command_prints_guidance
+    output, = capture_io do
+      Railslift::CLI.start(["upgrade-guide", "7.0", "7.1"])
+    end
+
+    assert_includes output, "Railslift Upgrade Guide"
+    assert_includes output, "Rails 7.0 → 7.1"
+    assert_includes output, "Required Ruby: >= 2.7.0"
+    assert_includes output, "bundle update rails"
+    assert_includes output, "https://guides.rubyonrails.org/7_1_release_notes.html"
+  end
 end
