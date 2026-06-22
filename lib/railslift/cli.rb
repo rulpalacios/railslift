@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "thor"
+require_relative "gem_analyzer"
 require_relative "outdated_checker"
 require_relative "project_detector"
 require_relative "upgrade_checker"
@@ -133,6 +134,38 @@ module Railslift
       puts "- Upgrade guide: #{result[:documentation].fetch("upgrade_guide")}"
       puts "- Release notes: #{result[:documentation].fetch("release_notes")}"
     rescue UpgradeGuide::UnsupportedTransition => error
+      raise Thor::Error, error.message
+    end
+
+    desc "gems", "Analyze direct gem dependencies for a Rails target"
+    option :target, required: true
+
+    def gems
+      result = GemAnalyzer.new(root_path: Dir.pwd, target_version: options[:target]).call
+
+      puts "Railslift Gem Analysis"
+      puts
+      puts "Target Rails: #{result[:target_version]}"
+      puts
+
+      if result[:dependencies].empty?
+        puts "No direct dependencies found."
+        return
+      end
+
+      result[:dependencies].each do |dependency|
+        marker = { compatible: "✓", warning: "!", unknown: "?" }.fetch(dependency[:status])
+        puts "#{marker} #{dependency[:name]} #{dependency[:version]} [#{dependency[:source]}]"
+        puts "  #{dependency[:message]}"
+        puts "  Source: #{dependency[:source_detail]}" if dependency[:source_detail]
+      end
+
+      puts
+      puts "Summary:"
+      puts "- Compatible: #{result[:summary].fetch(:compatible, 0)}"
+      puts "- Warnings: #{result[:summary].fetch(:warning, 0)}"
+      puts "- Unknown: #{result[:summary].fetch(:unknown, 0)}"
+    rescue GemAnalyzer::MissingLockfile, GemAnalyzer::InvalidLockfile => error
       raise Thor::Error, error.message
     end
   end
