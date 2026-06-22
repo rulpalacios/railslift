@@ -24,8 +24,9 @@ module Railslift
     def build_steps
       steps = []
       current_minor = minor(@current_version)
+      target_minor = minor(@target_version)
 
-      while Gem::Version.new(current_minor) < @target_version
+      while Gem::Version.new(current_minor) < Gem::Version.new(target_minor)
         next_version = @repository.next_version(current_minor)
 
         break if next_version.nil?

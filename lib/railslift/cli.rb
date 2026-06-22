@@ -1,10 +1,15 @@
 # frozen_string_literal: true
 
+require "json"
 require "thor"
+require_relative "ai/analyzer"
+require_relative "assisted_upgrade"
 require_relative "gem_analyzer"
 require_relative "outdated_checker"
 require_relative "project_detector"
+require_relative "project_report"
 require_relative "upgrade_checker"
+require_relative "upgrade_executor"
 require_relative "upgrade_guide"
 require_relative "upgrade_planner"
 
@@ -167,6 +172,177 @@ module Railslift
       puts "- Unknown: #{result[:summary].fetch(:unknown, 0)}"
     rescue GemAnalyzer::MissingLockfile, GemAnalyzer::InvalidLockfile => error
       raise Thor::Error, error.message
+    end
+
+    desc "report", "Generate a complete Rails upgrade report"
+    option :target, required: true
+    option :format, default: "text", enum: %w[text json]
+
+    def report
+      result = ProjectReport.new(
+        root_path: Dir.pwd,
+        target_version: options[:target]
+      ).call
+
+      if options[:format] == "json"
+        puts JSON.pretty_generate(result)
+        return
+      end
+
+      puts "Railslift Report"
+      puts
+      puts "Ruby: #{result[:project][:ruby_version]}"
+      puts "Current Rails: #{result[:project][:rails_version]}"
+      puts "Target Rails: #{result[:target_rails_version]}"
+      puts "Bundler: #{result[:project][:bundler_version] || "Not detected"}"
+      puts
+      puts "Upgrade path:"
+      result[:plan][:steps].each { |step| puts "- #{step[:from]} → #{step[:to]}" }
+      puts
+      puts "Compatibility:"
+      puts "- Ruby: #{result[:summary][:ruby_compatible] ? "Compatible" : "Upgrade required"}"
+      puts "- Gem warnings: #{result[:summary][:gem_warnings]}"
+      puts "- Gems without compatibility evidence: #{result[:summary][:gems_unknown]}"
+    rescue ProjectReport::MissingRails,
+           ProjectReport::MissingRuby,
+           GemAnalyzer::MissingLockfile,
+           GemAnalyzer::InvalidLockfile => error
+      raise Thor::Error, error.message
+    end
+
+    desc "analyze", "Analyze a Rails upgrade report with AI"
+    option :target, required: true
+    option :format, default: "text", enum: %w[text json]
+
+    def analyze
+      report = ProjectReport.new(
+        root_path: Dir.pwd,
+        target_version: options[:target]
+      ).call
+      result = AI::Analyzer.new.call(report: report)
+
+      if options[:format] == "json"
+        puts JSON.pretty_generate(result)
+        return
+      end
+
+      puts "Railslift AI Analysis"
+      puts
+      puts "Risk level: #{result[:risk_level].capitalize}"
+      puts
+      puts result[:summary]
+
+      unless result[:blockers].empty?
+        puts
+        puts "Blockers:"
+        result[:blockers].each { |blocker| puts "- #{blocker}" }
+      end
+
+      unless result[:risks].empty?
+        puts
+        puts "Risks:"
+        result[:risks].each do |risk|
+          puts "- [#{risk[:severity].upcase}] #{risk[:title]}"
+          puts "  Evidence: #{risk[:evidence]}"
+          puts "  Recommendation: #{risk[:recommendation]}"
+        end
+      end
+
+      puts
+      puts "Recommended order:"
+      result[:recommended_steps].sort_by { |step| step[:order] }.each do |step|
+        puts "#{step[:order]}. #{step[:action]}"
+        puts "   #{step[:rationale]}"
+      end
+    rescue ProjectReport::MissingRails,
+           ProjectReport::MissingRuby,
+           GemAnalyzer::MissingLockfile,
+           GemAnalyzer::InvalidLockfile,
+           AI::Provider::Error => error
+      raise Thor::Error, error.message
+    end
+
+    desc "upgrade", "Prepare or apply the next Rails minor upgrade"
+    option :target, required: true
+    option :apply, type: :boolean, default: false
+    option :ai, type: :boolean, default: false
+
+    def upgrade
+      if options[:ai]
+        result = AssistedUpgrade.new(
+          root_path: Dir.pwd,
+          target_version: options[:target],
+          approve: ->(question) { yes?("#{question} [y/N]") }
+        ).call
+        print_assisted_upgrade(result)
+        return
+      end
+
+      result = UpgradeExecutor.new(
+        root_path: Dir.pwd,
+        target_version: options[:target],
+        apply: options[:apply]
+      ).call
+
+      puts "Railslift Upgrade"
+      puts
+      puts "Rails #{result[:current_version]} → #{result[:target_version]}"
+      puts "Ruby: #{result[:ruby_version]}"
+      puts
+      puts "Gemfile:"
+      puts "- #{result[:gemfile_change][:before]}"
+      puts "+ #{result[:gemfile_change][:after]}"
+      puts
+      puts "Command:"
+      puts "- #{result[:command]}"
+
+      if result[:applied]
+        puts
+        puts "Upgrade dependency update applied."
+        puts
+        puts "Next steps:"
+        result[:next_steps].each { |step| puts "- #{step}" }
+        return
+      end
+
+      puts
+      puts "Preview only. No files were modified."
+      puts "Run again with --apply to update Gemfile and Gemfile.lock."
+    rescue UpgradeExecutor::Error,
+           UpgradeGuide::UnsupportedTransition,
+           AssistedUpgrade::Error,
+           AI::Provider::Error => error
+      raise Thor::Error, error.message
+    end
+
+    no_commands do
+      def print_assisted_upgrade(result)
+        puts "Railslift AI Upgrade"
+        puts
+
+        case result[:status]
+        when :cancelled
+          puts "Cancelled. No commands were run."
+        when :tests_passed
+          puts "Tests pass after app:update."
+        when :no_patch
+          puts result[:summary]
+          puts "AI could not produce a safe patch."
+        when :patch_proposed
+          puts result[:summary]
+          puts
+          puts result[:patch]
+          puts
+          puts "Patch was not applied."
+        when :fixed
+          puts result[:summary]
+          puts "AI patch applied and tests pass."
+        when :tests_failed
+          puts result[:summary]
+          puts "AI patch applied, but tests still fail."
+          puts result[:final_test_output]
+        end
+      end
     end
   end
 end
